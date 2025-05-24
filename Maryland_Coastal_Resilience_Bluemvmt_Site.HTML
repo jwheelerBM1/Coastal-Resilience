@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Report: Maryland Coastal Resilience</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - SLR Projections (Section: The Challenge): Line Chart (Chart.js) to show trends and future scenarios for sea-level rise. Interaction: Tooltips. Justification: Clearly visualizes change over time.
+        - Nuisance Flooding Baltimore (Section: Impacted Lives & Lands): Bar Chart (Chart.js) to illustrate the dramatic increase in flooding days. Interaction: Tooltips. Justification: Simple, effective comparison.
+        - Key Funding Allocations (Section: Investing in Tomorrow): Horizontal Bar Chart (Chart.js) for top funding programs. Interaction: Tooltips. Justification: Easy comparison of financial figures.
+        - TMDL Pollution Reduction Targets (Section: Restoring the Bay): Bar Chart (Chart.js) showing % reduction needed for N, P, Sediment. Interaction: Tooltips. Justification: Visualizes the scale of the cleanup task.
+        - Initiatives, Vulnerable Areas, Recommendations (Various Sections): Interactive Cards/Accordions (HTML/Tailwind + JS) for textual/qualitative info. Interaction: Click to expand. Justification: Manages dense information effectively.
+        - Key Stats (Various Sections): Static "Stat Card" callouts (HTML/Tailwind) for impactful numbers. Justification: Highlights key figures.
+        - CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { position: relative; width: 100%; max-width: 700px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; }
+        @media (max-width: 768px) { .chart-container { height: 300px; max-height: 350px;} }
+        .sticky-nav { position: -webkit-sticky; position: sticky; top: 0; z-index: 50; }
+        .stat-card { background-color: #e0f2fe; border-left: 4px solid #0ea5e9; }
+        .section-intro { font-size: 1.125rem; color: #475569; margin-bottom: 1.5rem; }
+        .accordion-button { transition: background-color 0.3s ease; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-out; }
+        .accordion-content.open { max-height: 1000px; transition: max-height 0.7s ease-in; }
+        h2 { font-size: 2rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; border-bottom: 2px solid #0ea5e9; padding-bottom: 0.5rem;}
+        h3 { font-size: 1.5rem; font-weight: 600; color: #334155; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .nav-link { transition: color 0.3s ease, border-bottom-color 0.3s ease; border-bottom: 2px solid transparent; }
+        .nav-link:hover, .nav-link.active { color: #0ea5e9; border-bottom-color: #0ea5e9; }
+        .tab-button { transition: background-color 0.3s ease, color 0.3s ease; }
+        .tab-button.active { background-color: #0ea5e9; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card { background-color: white; border-radius: 0.5rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
+        .logo {
+            max-width: 200px; /* Adjust this value to change the logo's size */
+            height: auto;
+            margin-right: 10px; /* Add space between the logo and the text */
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white shadow-md sticky-nav">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <img src="https://previews.dropbox.com/p/thumb/ACp1HeWRQLbylaA3jrhVNrsJghgJVp1hv0pwUx19FJccMgqaDnFqK7mf5o6WjRKRnEWOYq6UwD404OkDOysw17w5V_vOjQ9KIMA1OoZo_6lkYuIyDr2mXkae-YWsfop8I7WJ1AiNueLxFQ46HAub1hOcxEmFoFhxDs-XKBH8RXBWutdsR-_3jyTRZQ0YwHWe8CvAC1NDuCcA_spBxIPzIXI91Aw7_T0nZYSMp3CmvV7l0OeV3vuQaHnfauyCZ2xtzrXKy_BRKUN9s7FQsd1blojF1KovQXWpQstCVqNZAacoYg/p.png" alt="Bluemvmt Logo" class="logo">
+                    <span class="font-bold text-lg text-sky-600 ml-8">Maryland Coastal Resilience</span>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#challenge" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">The Challenge</a>
+                        <a href="#impacts" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Impacts</a>
+                        <a href="#solutions" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Solutions</a>
+                        <a href="#funding" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Funding</a>
+                        <a href="#water-quality" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Water Quality</a>
+                        <a href="#vulnerable-areas" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Vulnerable Areas</a>
+                        <a href="#recommendations" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-slate-700">Recommendations</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-sky-500 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-sky-500">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        <svg class="hidden h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </nav>
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#challenge" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-slate-700">The Challenge</a>
+                <a href="#impacts" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-slate-700">Impacts</a>
+                <a href="#solutions" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-slate-700">Solutions</a>
+                <a href="#funding" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-slate-700">Funding</a>
+                <a href="#water-quality" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-slate-700">Water Quality</a>
+                <a href="#vulnerable-areas" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-slate-700">Vulnerable Areas</a>
+                <a href="#recommendations" class="block nav-link px-3 py-2 rounded-md text-base font-medium text-slate-700">Recommendations</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <section id="challenge" class="my-12 scroll-mt-20">
+            <h2>The Challenge: Rising Seas, Pressing Threats</h2>
+            <p class="section-intro">This section provides an overview of Maryland's significant vulnerability to coastal hazards, primarily driven by accelerating sea-level rise. Explore key statistics and projections that illustrate the scale of the challenge the state is confronting.</p>
+            <div class="grid md:grid-cols-2 gap-8 items-center">
+                <div>
+                    <h3 class="text-sky-700">Maryland's Unique Vulnerability</h3>
+                    <p class="mb-4">Maryland's extensive coastline, over 7,000 miles along the Atlantic and Chesapeake Bay, makes it exceptionally susceptible to coastal storms, high tide flooding, and erosion. The Chesapeake Bay region is one of the most vulnerable areas in the nation to sea-level rise, a threat compounded by local land subsidence.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <div class="stat-card p-4 rounded-lg">
+                            <p class="text-3xl font-bold text-sky-600">~1 foot</p>
+                            <p class="text-sm text-slate-600">Sea-level rise in Chesapeake Bay over the past century (more than twice the global average).</p>
+                        </div>
+                        <div class="stat-card p-4 rounded-lg">
+                            <p class="text-3xl font-bold text-sky-600">2.1 feet</p>
+                            <p class="text-sm text-slate-600">Projected average sea-level rise by 2050 (2023 MD Projections).</p>
+                        </div>
+                         <div class="stat-card p-4 rounded-lg">
+                            <p class="text-3xl font-bold text-sky-600">3.7+ feet</p>
+                            <p class="text-sm text-slate-600">Potential sea-level rise by century's end (2023 MD Projections).</p>
+                        </div>
+                        <div class="stat-card p-4 rounded-lg">
+                            <p class="text-sm text-slate-700 font-semibold">Cambridge, MD Projections (by 2050, relative to 2000):</p>
+                            <p class="text-xl font-bold text-sky-600">1.38 - 1.57 feet</p>
+                             <p class="text-sm text-slate-600">(Intermediate to Intermediate-High Emissions)</p>
+                        </div>
+                    </div>
+                    <p>This accelerated rise demands proactive and robust coastal resilience efforts to safeguard communities, infrastructure, and natural resources.</p>
+                </div>
+                <div class="chart-container">
+                    <canvas id="slrProjectionsChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="impacts" class="my-12 scroll-mt-20">
+            <h2>Impacted Lives & Lands: The Tangible Effects</h2>
+            <p class="section-intro">Sea-level rise and increased coastal hazards are not distant threats; they are already inflicting severe and tangible impacts on Maryland's communities and ecosystems. This section explores these effects, from nuisance flooding to economic disruption and the particular vulnerabilities of specific areas.</p>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-8">
+                <div>
+                    <h3>Frequent Nuisance Flooding</h3>
+                    <p class="mb-4">Coastal communities are experiencing more frequent and severe nuisance tidal flooding, inundating roads, disrupting access to services, and impacting local economies. Baltimore, for example, saw a significant number of high-tide flooding days, with projections showing a dramatic increase.</p>
+                    <div class="chart-container h-72 max-h-[300px]">
+                        <canvas id="nuisanceFloodingChart"></canvas>
+                    </div>
+                </div>
+                <div>
+                    <h3>Shoreline Erosion and Marsh Loss</h3>
+                    <p class="mb-2">Rising waters accelerate shoreline erosion, and vital natural buffers like marshes are disappearing. Thirteen Bay islands have vanished in the last century.</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li>Up to <strong>90%</strong> of coastal marshes could be lost by 2100.</li>
+                        <li>Blackwater National Wildlife Refuge (Dorchester Co.) has lost up to <strong>5,000 acres</strong> of marsh.</li>
+                    </ul>
+
+                    <h3 class="mt-6">Saltwater Intrusion</h3>
+                    <p class="mb-2">A growing threat, especially on the Eastern Shore, saltwater intrusion damages agricultural fields, leading to crop loss and "ghost forests," impacting food production and local economies.</p>
+
+                    <h3 class="mt-6">Threats to Infrastructure & Economy</h3>
+                    <p class="mb-2">Even smaller storms cause expensive property damage. Nearly all of Maryland's <strong>2.2 million</strong> coastal properties are vulnerable. Over <strong>100 communities</strong> may face chronic inundation by the end of the century. Smaller communities often lack resources to adapt, creating disparities.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="solutions" class="my-12 scroll-mt-20">
+            <h2>Forging Resilience: Initiatives and Projects</h2>
+            <p class="section-intro">In response to these challenges, Maryland has adopted a comprehensive approach involving state-led programs, collaborative partnerships, and innovative tools. This section highlights key initiatives aimed at building a more resilient coastline.</p>
+
+            <div class="mb-6">
+                <div class="flex border-b border-slate-300">
+                    <button class="tab-button py-2 px-4 text-slate-600 hover:bg-sky-100 active" onclick="openTab(event, 'state-led')">State-Led Programs</button>
+                    <button class="tab-button py-2 px-4 text-slate-600 hover:bg-sky-100" onclick="openTab(event, 'collaborative')">Collaborative Initiatives</button>
+                    <button class="tab-button py-2 px-4 text-slate-600 hover:bg-sky-100" onclick="openTab(event, 'tools')">Key Tools & Resources</button>
+                </div>
+
+                <div id="state-led" class="tab-content p-4 active">
+                    <h3>Key State-Led Programs & Policies</h3>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">Coastal Resilience Program (CoastSmart)</h4>
+                            <p class="text-sm text-slate-600">Managed by DNR, assists communities with coastal hazards (high tide flooding, storm surge, SLR) through information, tools, training, and financial aid.</p>
+                        </div>
+                        <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">Maryland Sea Level Rise Projections</h4>
+                            <p class="text-sm text-slate-600">DNR & MD Sea Grant develop guidance using latest SLR projections (e.g., 2023 update) for planning and regulatory decisions.</p>
+                        </div>
+                        <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">Nuisance Flood Plans</h4>
+                            <p class="text-sm text-slate-600">Mandated for counties/municipalities with nuisance tidal flooding; updated every 5 years (next by Oct 1, 2025).</p>
+                        </div>
+                        <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">Coastal Resilience Easements</h4>
+                            <p class="text-sm text-slate-600">Novel conservation easements on private lands incorporating climate change, facilitating marsh migration, requiring hazard management plans, and establishing development setbacks.</p>
+                        </div>
+                         <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">Wetland Adaptation Area (WAA) Mapping</h4>
+                            <p class="text-sm text-slate-600">Uses SLAMM models to identify and prioritize areas for wetland migration, guiding land protection efforts.</p>
+                        </div>
+                         <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">Established Land Conservation Programs</h4>
+                            <p class="text-sm text-slate-600">Includes MET Conservation Easements, Agricultural Land Preservation, Program Open Space, and Rural Legacy programs, often leveraged for resilience.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="collaborative" class="tab-content p-4">
+                    <h3>Major Collaborative & Partner Initiatives (TNC Highlighted)</h3>
+                     <div class="grid md:grid-cols-2 gap-6">
+                        <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">TNC in Crisfield: Model for Resilience</h4>
+                            <p class="text-sm text-slate-600">NOAA-funded project (since 2022) assessing flood adaptation, building local capacity, developing early warning systems, mapping drainage, and exploring nature-based solutions.</p>
+                        </div>
+                        <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">TNC: Community Outreach (COEF)</h4>
+                            <p class="text-sm text-slate-600">Forums identifying barriers (inaccessible funding, capacity gaps) and proposing solutions (leveraging USACE funds, private funding).</p>
+                        </div>
+                        <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">TNC: Ecological Effects of SLR (EESLR)</h4>
+                            <p class="text-sm text-slate-600">Project quantifying tidal wetlands' role in reducing storm surge (e.g., first few feet of marsh reduce wave height up to 90%). Data informs conservation.</p>
+                        </div>
+                         <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">TNC: REPI Challenge</h4>
+                            <p class="text-sm text-slate-600">$3M DoD grant (2020) with NAS Patuxent River & USFWS to purchase easements on 4,000 acres (Eastern Shore) for marsh migration and preventing incompatible development.</p>
+                        </div>
+                        <div class="card p-5">
+                            <h4 class="font-semibold text-sky-700 text-lg mb-2">TNC: Resilient Protection Frameworks</h4>
+                            <p class="text-sm text-slate-600">$2M Lockheed Martin partnership to update easements/management plans for SLR, ensuring marsh migration, protecting 4,000 acres by 2025.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tools" class="tab-content p-4">
+                    <h3>Key Collaborative Tools & Resources</h3>
+                    <ul class="list-disc list-inside space-y-2 text-slate-700">
+                        <li><strong>U.S. Climate Resilience Toolkit (NOAA, NASA):</strong> Resources, case studies, tools for mitigation & adaptation.</li>
+                        <li><strong>Climate Mapping for Resilience & Adaptation (U.S. Coastal Resilience Toolkit):</strong> Real-time maps of hazards, exposure, federal policies, and funding.</li>
+                        <li><strong>Maryland Coastal Atlas (MD DNR, NOAA, ICAN):</strong> Online mapping for resiliency assessment, SLR vulnerability, WAA, storm surge.</li>
+                        <li><strong>Coastal Vulnerability in Maryland - Overview (TNC):</strong> Web map illustrating current/future SLR.</li>
+                        <li><strong>Surging Seas (Climate Central):</strong> Interactive map for neighborhood-level SLR visualization.</li>
+                        <li><strong>Coastal County Snapshots (NOAA):</strong> County-level exposure/resilience assessments.</li>
+                        <li><strong>FEMA Flood Insurance Rate Maps (FIRMs):</strong> Updated with the State to guide on flood risk.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="funding" class="my-12 scroll-mt-20">
+            <h2>Investing in Tomorrow: The Financial Landscape</h2>
+            <p class="section-intro">Addressing Maryland's coastal challenges requires substantial financial investment. This section examines the economic impacts of coastal hazards, current funding mechanisms, and identified gaps that need to be addressed for a resilient future.</p>
+            
+            <div class="grid md:grid-cols-2 gap-8 mb-8 items-start">
+                <div>
+                    <h3>The Staggering Cost of Inaction</h3>
+                    <div class="stat-card p-6 rounded-lg mb-6">
+                        <p class="text-4xl font-bold text-sky-600">$27.4 Billion</p>
+                        <p class="text-md text-slate-600">Conservative estimate to safeguard MD communities from chronic flooding alone by 2040 (moderate SLR).</p>
+                    </div>
+                    <p class="mb-2">Historical costs are also immense:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700 mb-4">
+                        <li><strong>$10B - $20B:</strong> Estimated recovery costs from 85 extreme weather events (1980-2024).</li>
+                        <li><strong>$156M+:</strong> Federal public assistance since 2011 for 6 disaster declarations (excludes nuisance flood costs).</li>
+                    </ul>
+                    <p>Conversely, nature-based solutions offer economic benefits: Maryland's wetlands saved over <strong>$40 million</strong> in avoided damages from Hurricane Sandy.</p>
+                    
+                    <h3 class="mt-6">Funding Gaps and Challenges</h3>
+                    <p class="mb-2">A significant disparity exists between projected needs and current investment levels. Key challenges include:</p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li>Lack of accessible funding for local communities.</li>
+                        <li>Capacity gaps in local governments.</li>
+                        <li>Complex state and federal grant processes.</li>
+                        <li>Potential vulnerability of long-term funding to broader budget pressures.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Key Funding Sources & Allocations (FY25-26 Focus)</h3>
+                    <p class="mb-4">Maryland utilizes diverse funding from state, federal, and private sources. Here are some highlights:</p>
+                    <div class="chart-container mb-6">
+                        <canvas id="fundingAllocationsChart"></canvas>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="p-3 bg-white rounded shadow"><strong>MDE Capital Program (FY26):</strong> $412.4M (incl. WQRLF, BRF, GO bonds) for water quality, wastewater, etc.</div>
+                        <div class="p-3 bg-white rounded shadow"><strong>Resiliency through Restoration Initiative (DNR):</strong> $8.35M allocated for nature-based community resilience projects.</div>
+                        <div class="p-3 bg-white rounded shadow"><strong>Chesapeake & Atlantic Coastal Bays Trust Fund (DNR):</strong> $5M (FY26 for Whole Watershed Act); supports non-point source pollution reduction, land preservation.</div>
+                         <div class="p-3 bg-white rounded shadow"><strong>REPI Program Grant (DoD, TNC, USFWS):</strong> $3M (2020) for Eastern Shore land protection.</div>
+                        <div class="p-3 bg-white rounded shadow"><strong>Lockheed Martin Partnership (TNC):</strong> $2M for Resilient Protection Frameworks & wetland protection.</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="water-quality" class="my-12 scroll-mt-20">
+            <h2>Restoring the Bay: Focus on Water Quality</h2>
+            <p class="section-intro">The health of the Chesapeake Bay is inextricably linked to its water quality. This section delves into the major pollutants, their sources, and Maryland's comprehensive initiatives to clean up and protect this vital estuary.</p>
+
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                <div class="card p-5">
+                    <h3 class="text-sky-700 !mt-0">Nutrients (N & P)</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Sources:</strong> Agricultural runoff (animal waste, crops), urban/suburban runoff (lawns, impervious surfaces), wastewater treatment plants.</p>
+                    <p class="text-sm text-slate-600"><strong>Impacts:</strong> Fuel algae blooms, deplete dissolved oxygen, create "dead zones" harmful to aquatic life.</p>
+                </div>
+                <div class="card p-5">
+                    <h3 class="text-sky-700 !mt-0">Sediment</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Sources:</strong> Agricultural/urban runoff, erosion.</p>
+                    <p class="text-sm text-slate-600"><strong>Impacts:</strong> Blocks sunlight for underwater grasses (SAV), destroying habitat and reducing the Bay's natural filtering capacity.</p>
+                </div>
+                <div class="card p-5">
+                    <h3 class="text-sky-700 !mt-0">Chemical Contaminants</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Sources:</strong> Wastewater, industries, atmospheric deposition, runoff.</p>
+                    <p class="text-sm text-slate-600"><strong>Impacts:</strong> Accumulate in sediments and animal tissues, posing risks to wildlife and potentially human health.</p>
+                </div>
+            </div>
+            
+            <h3>Maryland's Cleanup Efforts & TMDL Targets</h3>
+            <p class="mb-4">Maryland's Chesapeake Bay Cleanup Plan includes the Total Maximum Daily Load (TMDL) – a "pollution diet" for the Bay. Significant reductions are needed:</p>
+            <div class="chart-container mb-8">
+                <canvas id="tmdlTargetsChart"></canvas>
+            </div>
+
+            <h4>Key Initiatives:</h4>
+            <ul class="list-disc list-inside space-y-2 text-slate-700 mb-4">
+                <li><strong>Watershed Implementation Plans (WIPs):</strong> Detailed state plans to meet TMDL goals, refined in phases.</li>
+                <li><strong>Two-Year Milestones:</strong> Short-term commitments to ensure continuous progress.</li>
+                <li><strong>Best Management Practices (BMPs):</strong> Actions, policies, structures (e.g., cover crops, stormwater ponds) to reduce pollution locally.</li>
+                <li><strong>Chesapeake Bay Legacy Act:</strong> Establishes Maryland Leaders in Environmentally Engaged Farming (LEEF) Program to incentivize agricultural conservation and improve water quality monitoring.</li>
+                <li><strong>Funding Mechanisms:</strong> Water Quality Revolving Loan Fund (WQRLF), Bay Restoration Fund (BRF) support improvement projects.</li>
+            </ul>
+        </section>
+
+        <section id="vulnerable-areas" class="my-12 scroll-mt-20">
+            <h2>Focus on Vulnerability: Maryland's Hotspots</h2>
+            <p class="section-intro">Certain coastal areas in Maryland are disproportionately affected by sea-level rise and flooding due to their low elevation, proximity to the Bay, and socio-economic factors. This section highlights some of the most vulnerable communities and regions, drawing from Appendix A of the report.</p>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="card p-6">
+                    <h3 class="text-sky-700 !mt-0">Crisfield (Somerset Co.)</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Threats:</strong> Frequent nuisance flooding, economic disruption, property damage.</p>
+                    <p class="text-sm text-slate-600"><strong>Notes:</strong> Low elevation, model for resilience strategies (early warning, drainage mapping, nature-based solutions).</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-sky-700 !mt-0">Baltimore City</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Threats:</strong> High-tide flooding, urban inundation.</p>
+                    <p class="text-sm text-slate-600"><strong>Notes:</strong> Projected 50-155 flooding days by 2050 (up from 11 in 2019). Critical infrastructure at risk.</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-sky-700 !mt-0">Dorchester County</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Threats:</strong> Marsh loss, saltwater intrusion, flooding.</p>
+                    <p class="text-sm text-slate-600"><strong>Notes:</strong> Home to Blackwater NWR (5,000 acres marsh loss). High rates of SLR & subsidence.</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-sky-700 !mt-0">Somerset County</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Threats:</strong> Marsh loss, saltwater intrusion, flooding.</p>
+                    <p class="text-sm text-slate-600"><strong>Notes:</strong> Agricultural impacts. High rates of SLR & subsidence. Includes Crisfield.</p>
+                </div>
+                <div class="card p-6">
+                    <h3 class="text-sky-700 !mt-0">Worcester County</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Threats:</strong> Flooding, SLR, impacts on tourism economy.</p>
+                    <p class="text-sm text-slate-600"><strong>Notes:</strong> Identified as highly at-risk. Coastal environment is bedrock of tourism.</p>
+                </div>
+                 <div class="card p-6">
+                    <h3 class="text-sky-700 !mt-0">General Eastern Shore</h3>
+                    <p class="text-sm text-slate-600 mb-2"><strong>Threats:</strong> Widespread saltwater intrusion in agricultural areas, "ghost forests."</p>
+                    <p class="text-sm text-slate-600"><strong>Notes:</strong> Focus on land protection and marsh migration corridors.</p>
+                </div>
+            </div>
+            <p class="mt-6 text-sm text-slate-600">Maryland utilizes tools like the <strong>Maryland Coastal Atlas</strong> and NOAA's viewers to assess and map these vulnerabilities, aiding in planning and resource allocation.</p>
+        </section>
+
+        <section id="recommendations" class="my-12 scroll-mt-20">
+            <h2>Pathways to Resilience: Key Recommendations</h2>
+            <p class="section-intro">To accelerate coastal resilience, the report proposes several strategic recommendations. These aim to build on existing strengths, address challenges, and foster a more adaptive future for Maryland's coastal regions.</p>
+            <div class="space-y-4" id="recommendations-accordion">
+                <div>
+                    <button class="accordion-button w-full text-left p-4 bg-sky-100 hover:bg-sky-200 rounded-t-lg font-semibold text-sky-700 flex justify-between items-center">
+                        1. Enhance and Streamline Funding Mechanisms
+                        <span class="plus-minus text-xl">+</span>
+                    </button>
+                    <div class="accordion-content bg-white p-4 border border-t-0 border-slate-200 rounded-b-lg">
+                        <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                            <li>Establish a dedicated, long-term Climate Resilience Fund (e.g., via climate bonds, transfer taxes).</li>
+                            <li>Simplify and centralize grant application processes through a user-friendly portal.</li>
+                            <li>Increase technical assistance and capacity building for local governments in grant writing and project design.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <button class="accordion-button w-full text-left p-4 bg-sky-100 hover:bg-sky-200 font-semibold text-sky-700 flex justify-between items-center">
+                        2. Prioritize and Scale Nature-Based Solutions (NBS)
+                         <span class="plus-minus text-xl">+</span>
+                    </button>
+                    <div class="accordion-content bg-white p-4 border border-t-0 border-slate-200">
+                        <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                            <li>Expand investment in wetland restoration and protect marsh migration corridors (accelerate Coastal Resilience Easements, WAA protection).</li>
+                            <li>Integrate green infrastructure (permeable pavements, rain gardens) into urban/suburban planning.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <button class="accordion-button w-full text-left p-4 bg-sky-100 hover:bg-sky-200 font-semibold text-sky-700 flex justify-between items-center">
+                        3. Strengthen Data-Driven Planning and Monitoring
+                         <span class="plus-minus text-xl">+</span>
+                    </button>
+                    <div class="accordion-content bg-white p-4 border border-t-0 border-slate-200">
+                       <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                            <li>Mandate and fund regular updates to vulnerability assessments using latest tools, considering socio-economic factors.</li>
+                            <li>Enhance real-time flood monitoring and early warning systems across vulnerable communities.</li>
+                            <li>Invest in long-term monitoring of resilience project effectiveness, especially NBS.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div>
+                    <button class="accordion-button w-full text-left p-4 bg-sky-100 hover:bg-sky-200 rounded-b-lg font-semibold text-sky-700 flex justify-between items-center">
+                        4. Foster Inter-Agency Collaboration and Community Engagement
+                         <span class="plus-minus text-xl">+</span>
+                    </button>
+                    <div class="accordion-content bg-white p-4 border border-t-0 border-slate-200">
+                        <ul class="list-disc list-inside space-y-2 text-sm text-slate-600">
+                            <li>Formalize and expand collaborative platforms (like COEF) for knowledge sharing and coordination.</li>
+                            <li>Integrate climate resilience into all state planning, capital improvement, and permitting processes.</li>
+                            <li>Empower local communities, especially the most impacted, in decision-making for resilience projects.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-300 py-8 text-center">
+        <p class="text-sm">Interactive Report based on the Maryland Coastal Resilience Research Report.</p>
+        <p class="text-xs mt-1">Content synthesized for illustrative and educational purposes.</p>
+    </footer>
+
+<script>
+    const slrData = {
+        labels: ['2000', '2020', '2030', '2040', '2050', '2060', '2070', '2080', '2090', '2100'],
+        datasets: [
+            {
+                label: 'Projected SLR - MD Average (Intermediate)',
+                data: [0, 0.7, 1.1, 1.6, 2.1, 2.6, 3.1, 3.4, 3.7, 4.0],
+                borderColor: '#0ea5e9',
+                tension: 0.1,
+                fill: false
+            },
+            {
+                label: 'Cambridge SLR - Intermediate',
+                data: [0, null, null, null, 1.38, null, null, null, 3.31, null],
+                borderColor: '#38bdf8',
+                borderDash: [5, 5],
+                tension: 0.1,
+                fill: false
+            },
+             {
+                label: 'Cambridge SLR - Intermediate-High',
+                data: [0, null, null, null, 1.57, null, null, null, 4.36, null],
+                borderColor: '#0284c7',
+                borderDash: [10, 5],
+                tension: 0.1,
+                fill: false
+            }
+        ]
+    };
+    new Chart(document.getElementById('slrProjectionsChart'), {
+        type: 'line',
+        data: slrData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { title: { display: true, text: 'Sea Level Rise (feet) relative to 2000/2005' } } },
+            plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Projected Sea Level Rise in Maryland' } },
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) { label += ': '; }
+                            if (context.parsed.y !== null) { label += context.parsed.y.toFixed(2) + ' ft'; }
+                            return label;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    const nuisanceData = {
+        labels: ['2019', '2050 (Projected Low)', '2050 (Projected High)'],
+        datasets: [{
+            label: 'High-Tide Flooding Days in Baltimore',
+            data: [11, 50, 155],
+            backgroundColor: ['#38bdf8', '#0ea5e9', '#0284c7'],
+        }]
+    };
+    new Chart(document.getElementById('nuisanceFloodingChart'), {
+        type: 'bar',
+        data: nuisanceData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { title: { display: true, text: 'Number of Days' } } },
+            plugins: { legend: { display: false }, title: { display: true, text: 'Nuisance Flooding Increase' } }
+        }
+    });
+
+    const fundingData = {
+        labels: ['MDE Capital Prog.', 'WQRLF (MDE)', 'Resiliency Rest. (DNR)', 'C&AC Bays Trust (DNR)', 'Fed Climate Grants (DNR)'],
+        datasets: [{
+            label: 'Approx. Funding Allocation ($M)',
+            data: [412.4, 203.3, 8.35, 5.0, 4.4],
+            backgroundColor: ['#0369a1', '#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc'],
+        }]
+    };
+    new Chart(document.getElementById('fundingAllocationsChart'), {
+        type: 'bar',
+        data: fundingData,
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { x: { title: { display: true, text: 'Amount ($ Millions)' } } },
+            plugins: { legend: { display: false }, title: { display: true, text: 'Key Funding Allocations (FY26 Focus)' } }
+        }
+    });
+    
+    const tmdlData = {
+        labels: ['Nitrogen', 'Phosphorus', 'Sediment'],
+        datasets: [{
+            label: '% Reduction Needed for TMDL',
+            data: [20.8, 14.9, 3.2],
+            backgroundColor: ['#0ea5e9', '#38bdf8', '#7dd3fc'],
+        }]
+    };
+    new Chart(document.getElementById('tmdlTargetsChart'), {
+        type: 'bar',
+        data: tmdlData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { title: { display: true, text: 'Percentage (%)' } } },
+            plugins: { legend: { display: false }, title: { display: true, text: 'Pollution Reduction Needed for TMDL' } }
+        }
+    });
+
+    const accordionButtons = document.querySelectorAll('.accordion-button');
+    accordionButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const content = button.nextElementSibling;
+            const plusMinus = button.querySelector('.plus-minus');
+            content.classList.toggle('open');
+            if (content.classList.contains('open')) {
+                plusMinus.textContent = '-';
+                button.classList.add('rounded-b-none');
+                button.classList.remove('rounded-b-lg');
+            } else {
+                plusMinus.textContent = '+';
+                 button.classList.add('rounded-b-lg');
+                 button.classList.remove('rounded-b-none');
+            }
+            
+            accordionButtons.forEach(otherButton => {
+                if (otherButton !== button) {
+                    otherButton.nextElementSibling.classList.remove('open');
+                    otherButton.querySelector('.plus-minus').textContent = '+';
+                    otherButton.classList.add('rounded-b-lg');
+                    otherButton.classList.remove('rounded-b-none');
+                }
+            });
+        });
+    });
+
+    function openTab(event, tabName) {
+        let i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab-button");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).style.display = "block";
+        document.getElementById(tabName).classList.add("active");
+        event.currentTarget.classList.add("active");
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href');
+            const targetElement = document.querySelector(targetId);
+            if (targetElement) {
+                targetElement.scrollIntoView({ behavior: 'smooth' });
+                
+                document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+                this.classList.add('active');
+
+                if(document.getElementById('mobile-menu').classList.contains('block')) {
+                   document.getElementById('mobile-menu').classList.remove('block');
+                   document.getElementById('mobile-menu').classList.add('hidden');
+                   document.getElementById('mobile-menu-button').querySelector('svg.block').classList.remove('hidden');
+                   document.getElementById('mobile-menu-button').querySelector('svg.hidden').classList.add('hidden');
+                }
+            }
+        });
+    });
+
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const openIcon = mobileMenuButton.querySelector('svg.block');
+    const closeIcon = mobileMenuButton.querySelector('svg.hidden');
+
+    mobileMenuButton.addEventListener('click', () => {
+        const isOpen = mobileMenu.classList.toggle('hidden');
+        mobileMenu.classList.toggle('block', !isOpen);
+        openIcon.classList.toggle('hidden', !isOpen);
+        closeIcon.classList.toggle('hidden', isOpen);
+    });
+
+    window.addEventListener('scroll', () => {
+        let current = '';
+        const sections = document.querySelectorAll('main section');
+        const navLinks = document.querySelectorAll('nav a[href^="#"]');
+        const headerOffset = 100; 
+
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop - headerOffset;
+            if (pageYOffset >= sectionTop) {
+                current = section.getAttribute('id');
+            }
+        });
+
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').substring(1) === current) {
+                link.classList.add('active');
+            }
+        });
+    });
+
+</script>
+</body>
+</html>
